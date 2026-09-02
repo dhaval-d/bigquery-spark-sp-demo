@@ -189,53 +189,23 @@ Spark routes all rows for a given `(terr_cd, store_id, extract_date)` combinatio
 
 ---
 
-## 3. Cost Analysis & Pricing Breakdown
-
-BigQuery Spark Stored Procedures decouple compute costs from BigQuery SQL slot reservations:
-
-### 3.1 Pricing Components
-
-1. **Dataproc Serverless Compute**:
-   - Billed in **Dataproc Compute Units (DCUs)** ($1\text{ DCU} = 1\text{ vCPU} + 4\text{ GB RAM}$).
-   - Billed per second at $\approx \mathbf{\$0.10 \text{ to } \$0.12}$ per DCU-hour (1-minute minimum).
-   - A 5M-row job using ~16 DCUs for 7 minutes costs $\approx \mathbf{\$0.19}$.
-2. **BigQuery Storage Read API**:
-   - First **300 TB per month is free**; thereafter $\$1.10\text{ per TB}$.
-   - Scans for daily extracts (~1–10 GB) cost $\mathbf{\$0.00}$ (under free tier).
-3. **BigQuery SQL Slots**:
-   - **$0.00 billed bytes / slot hours**. The `CALL` procedure statement does not consume analytical SQL slot reservations or charge $\$6.25/\text{TB}$ on-demand fees.
-4. **Cloud Storage**:
-   - Standard GCS storage rate ($\approx \$0.02/\text{GB}/\text{month}$) + Class A operations for writes ($5,000 \times \$0.000005 \approx \mathbf{\$0.025}$).
-
----
-
-### 3.2 Cost Comparison: Spark Stored Procedure vs. Legacy SQL Loop
-
-| Attribute | Legacy BigQuery SQL Loop (5,000 Iterations) | BigQuery Spark Stored Procedure | Advantage |
-|---|---|---|---|
-| **Billing Basis** | Billed per query (5,000 queries) or slot-hours over 2.3+ hours | Billed per DCU-second for ~7 minutes | **~85% compute cost savings** |
-| **Slot Contention** | Ties up BigQuery slots for 138 minutes, impacting production dashboards | **Zero slot consumption**; runs on Dataproc Serverless | Eliminates pipeline slot starvation |
-| **Minimum Scan Charges** | Enforces 10 MB minimum per query ($5,000 \times 10\text{ MB} = 50\text{ GB}$ minimum billed) | Single continuous streaming session; no artificial minimums | Cost tracks true data size |
-| **Run Cost (5M rows)** | $\approx \mathbf{\$0.35 - \$1.50+}$ | $\approx \mathbf{\$0.20 - \$0.25}$ | Predictable, low cost |
-
----
-
-## 4. Empirical Benchmark & Verification Results
+## 3. Performance Benchmark & Verification Results
 
 Measurements captured on Google Cloud project `dd-de-workloads` (`us-east4`):
 
-### 4.1 Benchmark Summary
+### 3.1 Performance Comparison: Spark Stored Procedure vs. Legacy SQL Loop
 
-| Metric | Legacy BigQuery SQL Loop | BigQuery Spark Stored Procedure | Speedup |
+| Metric | Legacy BigQuery SQL Loop | BigQuery Spark Stored Procedure | Performance Advantage |
 |---|---|---|---|
 | **Dataset Scale** | 5,000,000 rows | 5,000,000 rows | — |
 | **Dynamic Partitions** | 5,000 (20 territories × 250 stores) | 5,000 (20 territories × 250 stores) | — |
 | **Execution Duration** | **138.13 minutes** (~2.3 hours projected)<br/>*(16s for 10 partitions @ 1.66s / query)* | **7.3 minutes** (441s total)<br/>*(Includes cold-start cluster spin-up & teardown)* | **~19x Faster (95% reduction)** |
 | **Execution Model** | 5,000 sequential `EXPORT DATA` queries | 1 distributed serverless Spark batch | Zero query queuing |
+| **Slot Contention** | Saturates BigQuery slots for 138 minutes | **Zero slot consumption**; runs on Dataproc Serverless | Eliminates pipeline slot starvation |
 
 ---
 
-### 4.2 Data Integrity & Hive Partition Verification
+### 3.2 Data Integrity & Hive Partition Verification
 
 The automated verification suite ([scripts/05_verify_export.py](file:///Users/dhavaldurve/bigquery-spark-sp-demo/scripts/05_verify_export.py)) validated 100% data parity:
 
