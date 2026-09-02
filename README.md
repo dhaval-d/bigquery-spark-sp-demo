@@ -47,7 +47,7 @@ flowchart TD
 
 ```
 .
-├── GEMINI.md                          # Technical specification and requirements
+├── ARCHITECTURE.md                    # Technical specification and requirements
 ├── README.md                          # Complete setup and demo guide
 ├── config/
 │   └── env_vars.sh                    # Centralized environment variables
