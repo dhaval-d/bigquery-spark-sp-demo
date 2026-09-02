@@ -48,6 +48,7 @@ flowchart TD
 ```
 .
 ├── ARCHITECTURE.md                    # Technical specification and requirements
+├── LICENSE                            # Apache License 2.0
 ├── README.md                          # Complete setup and demo guide
 ├── config/
 │   └── env_vars.sh                    # Centralized environment variables
@@ -132,3 +133,10 @@ To remove all demo resources (GCS bucket, BigQuery dataset, Spark connection):
 ```bash
 ./scripts/99_cleanup.sh
 ```
+
+---
+
+## 📄 License
+
+This project is licensed under the [Apache License 2.0](LICENSE).
+
